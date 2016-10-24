@@ -34,7 +34,7 @@ int main(int argc, char* args[]) {
         exit(-1);
     }
 
-    window = SDL_CreateWindow("CACA", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
     if(window == NULL) {
         printf("Couldn't init SDL Window");
@@ -120,6 +120,8 @@ int main(int argc, char* args[]) {
 
             //Update the window
             SDL_UpdateWindowSurface(window);
+            // memory leak in libcaca so we free the dither pointer
+            free(dither);
         }
     }
 
