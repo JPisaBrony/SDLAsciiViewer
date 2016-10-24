@@ -61,7 +61,9 @@ int main(int argc, char* args[]) {
         img[i] = SDL_ConvertSurfaceFormat(img[i], SDL_PIXELFORMAT_RGBA8888, 0);
     }
 
-    cv = caca_create_canvas(img[0]->w, img[0]->h);
+    // get screen surface
+    screen = SDL_GetWindowSurface(window);
+    cv = caca_create_canvas(screen->w / font_size, screen->h / font_size);
     caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
     caca_put_str(cv, 0, 0, "caca failed");
 
@@ -90,9 +92,6 @@ int main(int argc, char* args[]) {
         }
 
         for(k = 0; k < 16; k++) {
-            //Get window surface
-            screen = SDL_GetWindowSurface(window);
-
             //Fill background with black
             SDL_FillRect(screen, NULL, 0x000000);
 
@@ -106,8 +105,8 @@ int main(int argc, char* args[]) {
 
             pos.x = 0;
             pos.y = 0;
-            for(i = 0; i < img[k]->h; i++) {
-                for(j = 0; j < img[k]->w; j++) {
+            for(i = 0; i < screen->h / font_size; i++) {
+                for(j = 0; j < screen->w / font_size; j++) {
                     ch[0] = *chars++;
                     ch[1] = '\0';
                     bg = caca_attr_to_rgb12_bg(*attrs);
@@ -121,6 +120,8 @@ int main(int argc, char* args[]) {
                     background_color.b = (bg & 0x00f) * 8;
                     background_color.a = 0xff;
                     text = TTF_RenderText_Shaded(font, &ch, text_color, background_color);
+                    text->w = font_size;
+                    text->h = font_size;
                     SDL_BlitSurface(text, NULL, screen, &pos);
                     SDL_FreeSurface(text);
                     pos.x += font_size;
@@ -134,6 +135,8 @@ int main(int argc, char* args[]) {
             SDL_UpdateWindowSurface(window);
             // memory leak in libcaca so we free the dither pointer
             free(dither);
+
+            //SDL_Delay(20);
         }
     }
 
