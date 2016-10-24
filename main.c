@@ -6,15 +6,12 @@
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 900
-#define CACA_CHAR_SIZE 100
 
 caca_canvas_t *cv = NULL;
 SDL_Event event;
 SDL_Surface *caca_view = NULL;
 SDL_Window *window = NULL;
 SDL_Surface *screen = NULL;
-char caca_screen[CACA_CHAR_SIZE][CACA_CHAR_SIZE];
-char caca_screen_attr[CACA_CHAR_SIZE][CACA_CHAR_SIZE];
 SDL_Surface *text = NULL;
 SDL_Surface *img[16];
 caca_dither_t *dither = NULL;
