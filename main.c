@@ -35,6 +35,7 @@ int main(int argc, char* args[]) {
     }
 
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(window == NULL) {
         printf("Couldn't init SDL Window");
@@ -67,6 +68,8 @@ int main(int argc, char* args[]) {
     while(1) {
         while(SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) {
+                caca_free_canvas(cv);
+                SDL_FreeSurface(img);
                 SDL_Quit();
                 return 0;
             } else if(event.type == SDL_MOUSEWHEEL) {
@@ -74,6 +77,15 @@ int main(int argc, char* args[]) {
                     font_size += 2;
                 if(event.wheel.y < 0)
                     font_size -= 2;
+            } else if (event.type == SDL_KEYDOWN) {
+                switch(event.key.keysym.sym) {
+                    case 'q':
+                        caca_free_canvas(cv);
+                        SDL_FreeSurface(img);
+                        SDL_Quit();
+                        return 0;
+                    break;
+                }
             }
         }
 
