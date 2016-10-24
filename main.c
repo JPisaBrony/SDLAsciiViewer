@@ -4,8 +4,8 @@
 #include <SDL2/SDL_ttf.h>
 #include <caca.h>
 
-#define SCREEN_WIDTH 1280	// initial width  of the program window.
-#define SCREEN_HEIGHT 900	// initial height of the program window.
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 900
 #define CACA_CHAR_SIZE 100
 
 caca_canvas_t *cv = NULL;
@@ -35,7 +35,7 @@ int main(int argc, char* args[]) {
     }
 
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(window == NULL) {
         printf("Couldn't init SDL Window");
@@ -54,16 +54,16 @@ int main(int argc, char* args[]) {
 
     TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
 
-    cv = caca_create_canvas(CACA_CHAR_SIZE, CACA_CHAR_SIZE);
-    caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
-    caca_put_str(cv, 0, 0, "caca failed");
-
     char buffer[100];
     for(i = 0; i < 16; i++) {
         snprintf(buffer, sizeof(buffer), "pics/twi-%d.png", i);
         img[i] = IMG_Load(buffer);
         img[i] = SDL_ConvertSurfaceFormat(img[i], SDL_PIXELFORMAT_RGBA8888, 0);
     }
+
+    cv = caca_create_canvas(img[0]->w, img[0]->h);
+    caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
+    caca_put_str(cv, 0, 0, "caca failed");
 
     while(1) {
         while(SDL_PollEvent(&event)) {
@@ -98,16 +98,16 @@ int main(int argc, char* args[]) {
 
             caca_clear_canvas(cv);
 
-            dither = cucul_create_dither(32, CACA_CHAR_SIZE, CACA_CHAR_SIZE, img[k]->pitch, img[k]->format->Rmask, img[k]->format->Gmask, img[k]->format->Bmask, img[k]->format->Amask);
-            caca_dither_bitmap(cv, 0, 0, CACA_CHAR_SIZE, CACA_CHAR_SIZE, dither, img[k]->pixels);
+            dither = cucul_create_dither(32, img[k]->w, img[k]->h, img[k]->pitch, img[k]->format->Rmask, img[k]->format->Gmask, img[k]->format->Bmask, img[k]->format->Amask);
+            caca_dither_bitmap(cv, 0, 0, img[k]->w, img[k]->h, dither, img[k]->pixels);
 
             chars = caca_get_canvas_chars(cv);
             attrs = caca_get_canvas_attrs(cv);
 
             pos.x = 0;
             pos.y = 0;
-            for(i = 0; i < CACA_CHAR_SIZE; i++) {
-                for(j = 0; j < CACA_CHAR_SIZE; j++) {
+            for(i = 0; i < img[k]->h; i++) {
+                for(j = 0; j < img[k]->w; j++) {
                     ch[0] = *chars++;
                     ch[1] = '\0';
                     bg = caca_attr_to_rgb12_bg(*attrs);
