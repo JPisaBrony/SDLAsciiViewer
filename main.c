@@ -22,6 +22,7 @@ SDL_Color background_color;
 SDL_Rect pos;
 char ch[2];
 uint32_t *chars, *attrs;
+float zoom = 1;
 
 int main(int argc, char* args[]) {
     int i, j, k;
@@ -32,7 +33,7 @@ int main(int argc, char* args[]) {
     }
 
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(window == NULL) {
         printf("Couldn't init SDL Window");
@@ -73,9 +74,9 @@ int main(int argc, char* args[]) {
                 return 0;
             } else if(event.type == SDL_MOUSEWHEEL) {
                 if(event.wheel.y > 0)
-                    font_size += 2;
+                    zoom += 0.025;
                 if(event.wheel.y < 0)
-                    font_size -= 2;
+                    zoom -= 0.025;
             } else if (event.type == SDL_KEYDOWN) {
                 switch(event.key.keysym.sym) {
                     case 'q':
@@ -95,7 +96,7 @@ int main(int argc, char* args[]) {
             caca_clear_canvas(cv);
 
             dither = cucul_create_dither(32, img[k]->w, img[k]->h, img[k]->pitch, img[k]->format->Rmask, img[k]->format->Gmask, img[k]->format->Bmask, img[k]->format->Amask);
-            caca_dither_bitmap(cv, 0, 0, img[k]->w, img[k]->h, dither, img[k]->pixels);
+            caca_dither_bitmap(cv, 0, 0, (screen->w / font_size) * zoom, (screen->h / font_size) * zoom, dither, img[k]->pixels);
 
             chars = caca_get_canvas_chars(cv);
             attrs = caca_get_canvas_attrs(cv);
