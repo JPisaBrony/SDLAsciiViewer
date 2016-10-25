@@ -15,7 +15,7 @@ SDL_Surface *screen = NULL;
 SDL_Surface *text = NULL;
 SDL_Surface *img[16];
 caca_dither_t *dither = NULL;
-int font_size = 10;
+int font_size = 14;
 uint16_t bg, fg;
 SDL_Color text_color;
 SDL_Color background_color;
@@ -56,7 +56,7 @@ int main(int argc, char* args[]) {
     for(i = 0; i < 16; i++) {
         snprintf(buffer, sizeof(buffer), "pics/twi-%d.png", i);
         img[i] = IMG_Load(buffer);
-        img[i] = SDL_ConvertSurfaceFormat(img[i], SDL_PIXELFORMAT_RGBA8888, 0);
+        img[i] = SDL_ConvertSurfaceFormat(img[i], SDL_PIXELFORMAT_ARGB8888, 0);
     }
 
     // get screen surface
