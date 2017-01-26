@@ -28,7 +28,7 @@ char ch[2];
 uint32_t *chars, *attrs;
 float zoom = 1;
 
-char *imageName = "twi5.gif";
+char *imageName = "twi.gif";
 
 int main(int argc, char* args[]) {
     int i, j, k, videoStream = -1, frameFinished, numBytes;
