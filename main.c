@@ -27,36 +27,51 @@ SDL_Rect pos;
 char ch[2];
 uint32_t *chars, *attrs;
 float zoom = 1;
+AVFormatContext *pFormatCtx = NULL;
+AVCodecContext *pCodecCtxOrig = NULL;
+AVCodecContext *pCodecCtx = NULL;
+AVCodecParameters *codecparams = NULL;
+AVCodec *pCodec = NULL;
+AVFrame *pFrame = NULL;
+AVFrame *pFrameRGBA = NULL;
+uint8_t *imageBuffer = NULL;
+struct SwsContext *sws_ctx = NULL;
+AVPacket packet;
+int videoStream = -1, frameFinished, numBytes;
 
 char *imageName = "twi.gif";
 
+void exit_msg(char *msg) {
+    printf(msg);
+    exit(-1);
+}
+
+void cleanup() {
+    av_free(imageBuffer);
+    av_free(pFrame);
+    av_free(pFrameRGBA);
+    av_free_packet(&packet);
+    avcodec_close(pCodecCtx);
+    avcodec_close(pCodecCtxOrig);
+    avformat_close_input(&pFormatCtx);
+    caca_free_canvas(cv);
+    caca_free_dither(dither);
+    SDL_Quit();
+}
+
 int main(int argc, char* args[]) {
-    int i, j, k, videoStream = -1, frameFinished, numBytes;
-    AVFormatContext *pFormatCtx = NULL;
-    AVCodecContext *pCodecCtxOrig = NULL;
-    AVCodecContext *pCodecCtx = NULL;
-    AVCodecParameters *codecparams = NULL;
-    AVCodec *pCodec = NULL;
-    AVFrame *pFrame = NULL;
-    AVFrame *pFrameRGBA = NULL;
-    uint8_t *imageBuffer = NULL;
-    struct SwsContext *sws_ctx = NULL;
-    AVPacket packet;
+    int i, j;
 
     // register all file formats
     av_register_all();
 
     // open up file
-    if(avformat_open_input(&pFormatCtx, imageName, NULL, NULL) != 0) {
-        printf("Failed to open file");
-        exit(-1);
-    }
+    if(avformat_open_input(&pFormatCtx, imageName, NULL, NULL) != 0)
+        exit_msg("Failed to open file");
 
     // get stream info
-    if(avformat_find_stream_info(pFormatCtx, NULL) < 0) {
-        printf("Failed to get stream info");
-        exit(-1);
-    }
+    if(avformat_find_stream_info(pFormatCtx, NULL) < 0)
+        exit_msg("Failed to get stream info");
 
     // iterate through stream to find video
     for(i = 0; i < pFormatCtx->nb_streams; i++) {
@@ -67,48 +82,35 @@ int main(int argc, char* args[]) {
     }
 
     // check if we found the video stream
-    if(videoStream == -1) {
-        printf("Couldn't initialize stream");
-        exit(-1);
-    }
+    if(videoStream == -1)
+        exit_msg("Couldn't initialize stream");
 
     // get codec context from the video stream
     pCodecCtxOrig = pFormatCtx->streams[videoStream]->codec;
 
     // find decoder
     pCodec = avcodec_find_decoder(pCodecCtxOrig->codec_id);
-    if(pCodec == NULL) {
-        // failed to find video codec
-        printf("Couldn't find codec");
-        exit(-1);
-    }
+    if(pCodec == NULL)
+        exit_msg("Couldn't find codec");
 
     // copy context
     pCodecCtx = avcodec_alloc_context3(pCodec);
-    if(avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
-        printf("Couldn't copy Codec Context");
-        exit(-1);
-    }
+    if(avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0)
+        exit_msg("Couldn't copy Codec Context");
 
     // open codec
-    if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0) {
-        printf("Couldn't open Codec");
-        exit(-1);
-    }
+    if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0)
+        exit_msg("Couldn't open Codec");
 
     // allocate video frame
     pFrame = av_frame_alloc();
-    if(pFrame == NULL) {
-        printf("Couldn't allocate pFrame");
-        exit(-1);
-    }
+    if(pFrame == NULL)
+        exit_msg("Couldn't allocate pFrame");
 
     // allocate RGBA video frame
     pFrameRGBA = av_frame_alloc();
-    if(pFrameRGBA == NULL) {
-        printf("Couldn't allocate pFrameRGBA");
-        exit(-1);
-    }
+    if(pFrameRGBA == NULL)
+        exit_msg("Couldn't allocate pFrameRGBA");
 
     // determine required buffer size and allocate buffer
     numBytes = avpicture_get_size(AV_PIX_FMT_RGBA, pCodecCtx->width, pCodecCtx->height);
@@ -124,28 +126,20 @@ int main(int argc, char* args[]) {
             NULL,
             NULL);
 
-    if(SDL_Init(SDL_INIT_EVERYTHING) == -1) {
-        printf("Couldn't init SDL");
-        exit(-1);
-    }
+    if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
+        exit_msg("Couldn't init SDL");
 
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
-    if(window == NULL) {
-        printf("Couldn't init SDL Window");
-        exit(-1);
-    }
+    if(window == NULL)
+        exit_msg("Couldn't init SDL Window");
 
-    if(TTF_Init() == -1) {
-        printf("Couldn't init SDL TTF");
-        exit(-1);
-    }
+    if(TTF_Init() == -1)
+        exit_msg("Couldn't init SDL TTF");
 
-    if(IMG_Init(IMG_INIT_PNG) == -1) {
-        printf("Couldn't init SDL Image");
-        exit(-1);
-    }
+    if(IMG_Init(IMG_INIT_PNG) == -1)
+        exit_msg("Couldn't init SDL Image");
 
     TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
 
@@ -159,30 +153,26 @@ int main(int argc, char* args[]) {
     dither = caca_create_dither(32, pCodecCtx->width, pCodecCtx->height, pCodecCtx->width * 4, 0x0000ff, 0x00ff00, 0xff0000, 0);
 
     while(1) {
-        while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) {
-                caca_free_canvas(cv);
-                //SDL_FreeSurface(img);
-                SDL_Quit();
-                return 0;
-            } else if(event.type == SDL_MOUSEWHEEL) {
-                if(event.wheel.y > 0)
-                    zoom += 0.025;
-                if(event.wheel.y < 0)
-                    zoom -= 0.025;
-            } else if (event.type == SDL_KEYDOWN) {
-                switch(event.key.keysym.sym) {
-                    case 'q':
-                        caca_free_canvas(cv);
-                        //SDL_FreeSurface(img);
-                        SDL_Quit();
-                        return 0;
-                    break;
+        while(av_read_frame(pFormatCtx, &packet) >= 0) {
+            while(SDL_PollEvent(&event)) {
+                if(event.type == SDL_QUIT) {
+                    cleanup();
+                    return 0;
+                } else if(event.type == SDL_MOUSEWHEEL) {
+                    if(event.wheel.y > 0)
+                        zoom += 0.025;
+                    if(event.wheel.y < 0)
+                        zoom -= 0.025;
+                } else if (event.type == SDL_KEYDOWN) {
+                    switch(event.key.keysym.sym) {
+                        case 'q':
+                            cleanup();
+                            return 0;
+                        break;
+                    }
                 }
             }
-        }
 
-        while(av_read_frame(pFormatCtx, &packet) >= 0) {
             if(packet.stream_index == videoStream) {
                 avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
 
@@ -242,15 +232,6 @@ int main(int argc, char* args[]) {
     }
 
     // cleanup
-    av_free(imageBuffer);
-    av_free(pFrame);
-    av_free(pFrameRGBA);
-    av_free_packet(&packet);
-    avcodec_close(pCodecCtx);
-    avcodec_close(pCodecCtxOrig);
-    avformat_close_input(&pFormatCtx);
-    caca_free_canvas(cv);
-    caca_free_dither(dither);
-    SDL_Quit();
+    cleanup();
     return 0;
 }
