@@ -37,9 +37,9 @@ AVFrame *pFrameRGBA = NULL;
 uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
-int videoStream = -1, frameFinished, numBytes;
+int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
 
-char *imageName = "twi.gif";
+char *imageName = "C:\\Users\\JoshP\\Ascii Screensaver\\10 Second countdown.mp4";
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -141,7 +141,7 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
+    TTF_Font *font = TTF_OpenFont("C:\\Users\\JoshP\\Ascii Screensaver\\FreeMonoBold.ttf", font_size);
 
     // get screen surface
     screen = SDL_GetWindowSurface(window);
@@ -230,7 +230,9 @@ int main(int argc, char* args[]) {
         }
 
         // reset to beginning of file
-        av_seek_frame(pFormatCtx, 0, NULL, 0);
+        stream_index = av_find_default_stream_index(pFormatCtx);
+        start_time = pFormatCtx->streams[stream_index]->time_base.num;
+        av_seek_frame(pFormatCtx, stream_index, start_time, AVSEEK_FLAG_BACKWARD);
     }
 
     // cleanup
