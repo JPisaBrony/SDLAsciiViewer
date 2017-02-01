@@ -49,6 +49,7 @@ char* filename;
 char** pictures;
 
 char *basePath = "pics\\";
+char *fontPath = "FreeMonoBold.ttf";
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -175,7 +176,7 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    TTF_Font *font = TTF_OpenFont("C:\\Users\\BobbyB\\homer_scr_ffmpeg\\FreeMonoBold.ttf", font_size);
+    TTF_Font *font = TTF_OpenFont(fontPath, font_size);
     TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
