@@ -43,13 +43,14 @@ AVPacket packet;
 int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
 
 DIR *dir;
-int numPics = 0;
+int num_pics = 0;
 struct dirent *ent;
 char* filename;
 char** pictures;
+char *image_name;
 
-char *basePath = "pics\\";
-char *fontPath = "FreeMonoBold.ttf";
+char *base_path = "pics\\";
+char *font_path = "FreeMonoBold.ttf";
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -73,26 +74,25 @@ int main(int argc, char* args[]) {
     int i, j;
 
     pictures = (char**)malloc(sizeof(char*) * 256);
-    if ((dir = opendir(basePath)) != NULL) {
+    if ((dir = opendir(base_path)) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
             filename = (char*)ent->d_name;
             if (strcmp(filename,".") != 0 && strcmp(filename,"..") != 0) {
-                pictures[numPics] = (char*)malloc(sizeof(char) * 256);
-                strcpy(pictures[numPics], filename);
-                numPics++;
+                pictures[num_pics] = (char*)malloc(sizeof(char) * 256);
+                strcpy(pictures[num_pics], filename);
+                num_pics++;
             }
         }
     }
 
     srand(time(NULL));
-    int random = rand()%numPics;
+    int random = rand() % num_pics;
     char *img = pictures[random];
-    char *imageName;
 
-    if ((imageName = malloc(strlen(basePath) + strlen(img) + 1)) != NULL) {
-        imageName[0] = '\0';
-        strcat(imageName, basePath);
-        strcat(imageName, img);
+    if ((image_name = malloc(strlen(base_path) + strlen(img) + 1)) != NULL) {
+        image_name[0] = '\0';
+        strcat(image_name, base_path);
+        strcat(image_name, img);
     } else {
         exit_msg("Failed to append strs - could not malloc.");
     }
@@ -101,7 +101,7 @@ int main(int argc, char* args[]) {
     av_register_all();
 
     // open up file
-    if(avformat_open_input(&pFormatCtx, imageName, NULL, NULL) != 0)
+    if(avformat_open_input(&pFormatCtx, image_name, NULL, NULL) != 0)
         exit_msg("Failed to open file");
 
     // get stream info
@@ -164,7 +164,9 @@ int main(int argc, char* args[]) {
     if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
         exit_msg("Couldn't init SDL");
 
+    // setup SDL window
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    // set window as full screen
     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(window == NULL)
@@ -176,7 +178,8 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    TTF_Font *font = TTF_OpenFont(fontPath, font_size);
+    // open font and get text size
+    TTF_Font *font = TTF_OpenFont(font_path, font_size);
     TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
