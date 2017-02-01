@@ -19,7 +19,7 @@ SDL_Surface *text = NULL;
 SDL_Texture *texture = NULL;
 SDL_Renderer *renderer = NULL;
 caca_dither_t *dither = NULL;
-int font_size = 14;
+int font_size = 14, font_width, font_height;
 uint16_t bg, fg;
 SDL_Color text_color;
 SDL_Color background_color;
@@ -142,10 +142,11 @@ int main(int argc, char* args[]) {
         exit_msg("Couldn't init SDL Image");
 
     TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
+    TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
     screen = SDL_GetWindowSurface(window);
-    cv = caca_create_canvas(screen->w / font_size, screen->h / font_size);
+    cv = caca_create_canvas(screen->w / font_width, screen->h / font_height);
     caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
     caca_put_str(cv, 0, 0, "caca failed");
 
@@ -188,15 +189,15 @@ int main(int argc, char* args[]) {
                     // clear canvas
                     caca_clear_canvas(cv);
                     // dither the frame
-                    caca_dither_bitmap(cv, 0, 0, (screen->w / font_size) * zoom, (screen->h / font_size) * zoom, dither, pFrameRGBA->data[0]);
+                    caca_dither_bitmap(cv, 0, 0, (screen->w / font_width) * zoom, (screen->h / font_height) * zoom, dither, pFrameRGBA->data[0]);
                     // get libcaca internal state
                     chars = caca_get_canvas_chars(cv);
                     attrs = caca_get_canvas_attrs(cv);
 
                     pos.x = 0;
                     pos.y = 0;
-                    for(i = 0; i < screen->h / font_size; i++) {
-                        for(j = 0; j < screen->w / font_size; j++) {
+                    for(i = 0; i < screen->h / font_height; i++) {
+                        for(j = 0; j < screen->w / font_width; j++) {
                             ch[0] = *chars++;
                             ch[1] = '\0';
                             bg = caca_attr_to_rgb12_bg(*attrs);
@@ -210,15 +211,13 @@ int main(int argc, char* args[]) {
                             background_color.b = (bg & 0x00f) * 8;
                             background_color.a = 0xff;
                             text = TTF_RenderText_Shaded(font, &ch, text_color, background_color);
-                            text->w = font_size;
-                            text->h = font_size;
                             SDL_BlitSurface(text, NULL, screen, &pos);
                             SDL_FreeSurface(text);
-                            pos.x += font_size;
+                            pos.x += font_width;
                             attrs++;
                         }
                         pos.x = 0;
-                        pos.y += font_size;
+                        pos.y += font_height;
                     }
 
                     //Update the window
