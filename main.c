@@ -6,6 +6,9 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavcodec/avcodec.h>
+#include <dirent.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 900
@@ -19,7 +22,7 @@ SDL_Surface *text = NULL;
 SDL_Texture *texture = NULL;
 SDL_Renderer *renderer = NULL;
 caca_dither_t *dither = NULL;
-int font_size = 14, font_width, font_height;
+int font_size = 12, font_width, font_height;
 uint16_t bg, fg;
 SDL_Color text_color;
 SDL_Color background_color;
@@ -39,7 +42,13 @@ struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
 int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
 
-char *imageName = "twi.gif";
+DIR *dir;
+int numPics = 0;
+struct dirent *ent;
+char* filename;
+char** pictures;
+
+char *basePath = "pics\\";
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -61,6 +70,31 @@ void cleanup() {
 
 int main(int argc, char* args[]) {
     int i, j;
+
+    pictures = (char**)malloc(sizeof(char*) * 256);
+    if ((dir = opendir(basePath)) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            filename = (char*)ent->d_name;
+            if (strcmp(filename,".") != 0 && strcmp(filename,"..") != 0) {
+                pictures[numPics] = (char*)malloc(sizeof(char) * 256);
+                strcpy(pictures[numPics], filename);
+                numPics++;
+            }
+        }
+    }
+
+    srand(time(NULL));
+    int random = rand()%numPics;
+    char *img = pictures[random];
+    char *imageName;
+
+    if ((imageName = malloc(strlen(basePath) + strlen(img) + 1)) != NULL) {
+        imageName[0] = '\0';
+        strcat(imageName, basePath);
+        strcat(imageName, img);
+    } else {
+        exit_msg("Failed to append strs - could not malloc.");
+    }
 
     // register all file formats
     av_register_all();
@@ -141,7 +175,7 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
+    TTF_Font *font = TTF_OpenFont("C:\\Users\\BobbyB\\homer_scr_ffmpeg\\FreeMonoBold.ttf", font_size);
     TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
