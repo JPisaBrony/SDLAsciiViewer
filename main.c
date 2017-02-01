@@ -223,6 +223,8 @@ int main(int argc, char* args[]) {
 
                     //Update the window
                     SDL_UpdateWindowSurface(window);
+                    // free packet
+                    av_free_packet(&packet);
                 }
             }
         }
