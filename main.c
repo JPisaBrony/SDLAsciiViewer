@@ -39,7 +39,7 @@ struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
 int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
 
-char *imageName = "C:\\Users\\JoshP\\Ascii Screensaver\\10 Second countdown.mp4";
+char *imageName = "twi.gif";
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -141,7 +141,7 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    TTF_Font *font = TTF_OpenFont("C:\\Users\\JoshP\\Ascii Screensaver\\FreeMonoBold.ttf", font_size);
+    TTF_Font *font = TTF_OpenFont("FreeMonoBold.ttf", font_size);
 
     // get screen surface
     screen = SDL_GetWindowSurface(window);
