@@ -22,7 +22,7 @@ SDL_Surface *text = NULL;
 SDL_Texture *texture = NULL;
 SDL_Renderer *renderer = NULL;
 caca_dither_t *dither = NULL;
-int font_size = 12, font_width, font_height;
+int font_size = -1, font_width, font_height;
 uint16_t bg, fg;
 SDL_Color text_color;
 SDL_Color background_color;
@@ -40,7 +40,7 @@ AVFrame *pFrameRGBA = NULL;
 uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
-int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
+int videoStream = -1, frameFinished, numBytes, stream_index, start_time, full_screen = -1, sound = -1;
 
 DIR *dir;
 int num_pics = 0;
@@ -49,8 +49,8 @@ char* filename;
 char** pictures;
 char *image_name;
 
-char *base_path = "pics\\";
-char *font_path = "FreeMonoBold.ttf";
+char *base_path = NULL;
+char *font_name = NULL;
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -58,6 +58,8 @@ void exit_msg(char *msg) {
 }
 
 void cleanup() {
+    free(base_path);
+    free(font_name);
     av_free(imageBuffer);
     av_free(pFrame);
     av_free(pFrameRGBA);
@@ -70,8 +72,104 @@ void cleanup() {
     SDL_Quit();
 }
 
+void read_config() {
+    char ch, *line, *split;
+    int i = 0, line_length = 255, line_end_flag = 0, num_lines = 0;
+
+    FILE *fp = NULL;
+
+    // check if the file exists
+    if(access("config.txt", F_OK) != -1) {
+        // file does exist to read in configuration settings
+        fp = fopen("config.txt", "r");
+        // make sure we opened the file
+        if(fp == NULL)
+            exit_msg("Failed to open config.txt");
+
+        // allocate memory
+        line = malloc(sizeof(char) * line_length);
+
+        // read the whole file
+        while(fgets(line, line_length + 1, fp)) {
+            // check if the line is a new line character
+            if(*line != '\n') {
+                // split on : character
+                split = strtok(line, ":");
+                // check the config setting name to set the proper variable
+                if(strcmp(split, "font_size") == 0) {
+                    split = strtok(NULL, ":");
+                    font_size = atoi(split);
+                }
+                if(strcmp(split, "base_path") == 0) {
+                    split = strtok(NULL, ":");
+                    split = strtok(split, "\n");
+                    base_path = malloc(sizeof(char) * 256);
+                    strcpy(base_path, split);
+                }
+                if(strcmp(split, "font_name") == 0) {
+                    split = strtok(NULL, ":");
+                    split = strtok(split, "\n");
+                    font_name = malloc(sizeof(char) * 256);
+                    strcpy(font_name, split);
+                }
+                if(strcmp(split, "full_screen") == 0) {
+                    split = strtok(NULL, ":");
+                    full_screen = atoi(split);
+                }
+                if(strcmp(split, "sound") == 0) {
+                    split = strtok(NULL, ":");
+                    sound = atoi(split);
+                }
+
+                i++;
+            }
+        }
+
+        // check to make sure that everything got set to something
+        if(font_size == -1)
+            font_size = 14;
+
+        if(base_path == NULL)
+            base_path = "pics\\";
+
+        if(font_name == NULL)
+            font_name = "FreeMonoBold.ttf";
+
+        if(full_screen == -1)
+            full_screen = 1;
+
+        if(sound == -1)
+            sound = 0;
+    } else {
+        // file doesn't exist so write default configuration
+        // and use default values
+        fp = fopen("config.txt", "w");
+         // make sure we opened the file
+        if(fp == NULL)
+            exit_msg("Failed to open config.txt");
+        // write default settings to file
+        fprintf(fp, "font_size:14\n");
+        fprintf(fp, "base_path:pics\\\n");
+        fprintf(fp, "font_name:FreeMonoBold.ttf\n");
+        fprintf(fp, "full_screen:1\n");
+        fprintf(fp, "sound:0\n");
+        // set default settings for variables
+        font_size = 14;
+        base_path = "pics\\";
+        font_name = "FreeMonoBold.ttf";
+        full_screen = 1;
+        sound = 0;
+    }
+
+    // cleanup
+    fclose(fp);
+    free(line);
+}
+
 int main(int argc, char* args[]) {
     int i, j;
+
+    read_config();
 
     pictures = (char**)malloc(sizeof(char*) * 256);
     if ((dir = opendir(base_path)) != NULL) {
@@ -167,7 +265,8 @@ int main(int argc, char* args[]) {
     // setup SDL window
     window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     // set window as full screen
-    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    if(full_screen)
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(window == NULL)
         exit_msg("Couldn't init SDL Window");
@@ -179,7 +278,7 @@ int main(int argc, char* args[]) {
         exit_msg("Couldn't init SDL Image");
 
     // open font and get text size
-    TTF_Font *font = TTF_OpenFont(font_path, font_size);
+    TTF_Font *font = TTF_OpenFont(font_name, font_size);
     TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
