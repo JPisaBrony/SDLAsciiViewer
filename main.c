@@ -98,6 +98,7 @@ void read_config() {
                 // check the config setting name to set the proper variable
                 if(strcmp(split, "font_size") == 0) {
                     split = strtok(NULL, "=");
+                    split = strtok(split, "\n");
                     font_size = atoi(split);
                 }
                 if(strcmp(split, "base_path") == 0) {
