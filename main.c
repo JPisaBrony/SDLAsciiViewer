@@ -126,7 +126,7 @@ void read_config() {
         }
 
         // check to make sure that everything got set to something
-        if(font_size == -1)
+        if(font_size == -1 || font_size == 0)
             font_size = 14;
 
         if(base_path == NULL)
@@ -181,6 +181,8 @@ int main(int argc, char* args[]) {
                 num_pics++;
             }
         }
+    } else {
+        exit_msg("Failed to open folder");
     }
 
     srand(time(NULL));
@@ -277,8 +279,11 @@ int main(int argc, char* args[]) {
     if(IMG_Init(IMG_INIT_PNG) == -1)
         exit_msg("Couldn't init SDL Image");
 
-    // open font and get text size
+    // open font
     TTF_Font *font = TTF_OpenFont(font_name, font_size);
+    if(font == NULL)
+        exit_msg("Failed to open font");
+    // get text size
     TTF_SizeText(font, "a", &font_width, &font_height);
 
     // get screen surface
