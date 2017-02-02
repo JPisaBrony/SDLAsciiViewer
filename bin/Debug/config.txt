@@ -1,5 +1,5 @@
 font_size=14
-base_path=pics\
+folder_path=pics\
 font_name=FreeMonoBold.ttf
 full_screen=1
 sound=0

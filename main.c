@@ -40,16 +40,18 @@ AVFrame *pFrameRGBA = NULL;
 uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
-int videoStream = -1, frameFinished, numBytes, stream_index, start_time, full_screen = -1, sound = -1;
+int videoStream = -1, frameFinished, numBytes, stream_index, start_time, full_screen = -1, sound = -1, random;
 
 DIR *dir;
 int num_pics = 0;
 struct dirent *ent;
-char* filename;
-char** pictures;
-char *image_name;
+char *filename = NULL;
+char **pictures = NULL;
+char *input_full_path = NULL;
+char *img = NULL;
 
 char *base_path = NULL;
+char *folder_path = NULL;
 char *font_name = NULL;
 
 void exit_msg(char *msg) {
@@ -58,8 +60,9 @@ void exit_msg(char *msg) {
 }
 
 void cleanup() {
-    free(base_path);
+    SDL_free(base_path);
     free(font_name);
+    free(folder_path);
     av_free(imageBuffer);
     av_free(pFrame);
     av_free(pFrameRGBA);
@@ -73,15 +76,22 @@ void cleanup() {
 }
 
 void read_config() {
-    char ch, *line, *split;
+    char ch, *line = NULL, *split = NULL, *config_name = NULL, *config = NULL;
     int i = 0, line_length = 255, line_end_flag = 0, num_lines = 0;
-
     FILE *fp = NULL;
 
+    // setup config strings
+    config_name = "config.txt";
+    config = malloc(strlen(base_path) + strlen(config_name) + 1);
+    // get config location
+    config[0] = '\0';
+    strcat(config, base_path);
+    strcat(config, config_name);
+
     // check if the file exists
-    if(access("config.txt", F_OK) != -1) {
+    if(access(config, F_OK) != -1) {
         // file does exist to read in configuration settings
-        fp = fopen("config.txt", "r");
+        fp = fopen(config, "r");
         // make sure we opened the file
         if(fp == NULL)
             exit_msg("Failed to open config.txt");
@@ -101,11 +111,11 @@ void read_config() {
                     split = strtok(split, "\n");
                     font_size = atoi(split);
                 }
-                if(strcmp(split, "base_path") == 0) {
+                if(strcmp(split, "folder_path") == 0) {
                     split = strtok(NULL, "=");
                     split = strtok(split, "\n");
-                    base_path = malloc(sizeof(char) * 256);
-                    strcpy(base_path, split);
+                    folder_path = malloc(sizeof(char) * 256);
+                    strcpy(folder_path, split);
                 }
                 if(strcmp(split, "font_name") == 0) {
                     split = strtok(NULL, "=");
@@ -130,8 +140,8 @@ void read_config() {
         if(font_size == -1 || font_size == 0)
             font_size = 14;
 
-        if(base_path == NULL)
-            base_path = "pics\\";
+        if(folder_path == NULL)
+            folder_path = "pics/";
 
         if(font_name == NULL)
             font_name = "FreeMonoBold.ttf";
@@ -144,19 +154,19 @@ void read_config() {
     } else {
         // file doesn't exist so write default configuration
         // and use default values
-        fp = fopen("config.txt", "w");
+        fp = fopen(config, "w");
          // make sure we opened the file
         if(fp == NULL)
             exit_msg("Failed to open config.txt");
         // write default settings to file
         fprintf(fp, "font_size=14\n");
-        fprintf(fp, "base_path=pics\\\n");
+        fprintf(fp, "folder_path=pics/\n");
         fprintf(fp, "font_name=FreeMonoBold.ttf\n");
         fprintf(fp, "full_screen=1\n");
         fprintf(fp, "sound=0\n");
         // set default settings for variables
         font_size = 14;
-        base_path = "pics\\";
+        folder_path = "pics/";
         font_name = "FreeMonoBold.ttf";
         full_screen = 1;
         sound = 0;
@@ -165,12 +175,24 @@ void read_config() {
     // cleanup
     fclose(fp);
     free(line);
+    free(config);
 }
 
 int main(int argc, char* args[]) {
     int i, j;
 
+    // get base working directory
+    base_path = SDL_GetBasePath();
+
+    #ifdef _WIN32
+        // windows specific call to get the full file path instead of the short file path
+        GetLongPathName(base_path, base_path, 1024);
+    #endif
+
+    // read or create config settings
     read_config();
+    // get full base path with folder path
+    base_path = strcat(base_path, folder_path);
 
     pictures = (char**)malloc(sizeof(char*) * 256);
     if ((dir = opendir(base_path)) != NULL) {
@@ -187,22 +209,22 @@ int main(int argc, char* args[]) {
     }
 
     srand(time(NULL));
-    int random = rand() % num_pics;
-    char *img = pictures[random];
+    random = rand() % num_pics;
+    img = pictures[random];
 
-    if ((image_name = malloc(strlen(base_path) + strlen(img) + 1)) != NULL) {
-        image_name[0] = '\0';
-        strcat(image_name, base_path);
-        strcat(image_name, img);
+    if ((input_full_path = malloc(strlen(base_path) + strlen(img) + 1)) != NULL) {
+        input_full_path[0] = '\0';
+        strcat(input_full_path, base_path);
+        strcat(input_full_path, img);
     } else {
-        exit_msg("Failed to append strs - could not malloc.");
+        exit_msg("Failed to create input file full path");
     }
 
     // register all file formats
     av_register_all();
 
     // open up file
-    if(avformat_open_input(&pFormatCtx, image_name, NULL, NULL) != 0)
+    if(avformat_open_input(&pFormatCtx, input_full_path, NULL, NULL) != 0)
         exit_msg("Failed to open file");
 
     // get stream info
