@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <caca.h>
 #include <libavformat/avformat.h>
@@ -40,16 +39,14 @@ AVFrame *pFrameRGBA = NULL;
 uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
-int videoStream = -1, frameFinished, numBytes, stream_index, start_time, full_screen = -1, sound = -1, random;
-
+int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
+int full_screen = -1, sound = -1, random = -1, num_pics = 0;
 DIR *dir;
-int num_pics = 0;
 struct dirent *ent;
 char *filename = NULL;
 char **pictures = NULL;
 char *input_full_path = NULL;
 char *img = NULL;
-
 char *base_path = NULL;
 char *folder_path = NULL;
 char *font_name = NULL;
@@ -177,6 +174,8 @@ void read_config() {
     // cleanup
     fclose(fp);
     free(line);
+    free(split);
+    free(config_name);
     free(config);
 }
 
@@ -292,6 +291,7 @@ int main(int argc, char* args[]) {
             NULL,
             NULL);
 
+    // setup SDL
     if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
         exit_msg("Couldn't init SDL");
 
@@ -306,9 +306,6 @@ int main(int argc, char* args[]) {
 
     if(TTF_Init() == -1)
         exit_msg("Couldn't init SDL TTF");
-
-    if(IMG_Init(IMG_INIT_PNG) == -1)
-        exit_msg("Couldn't init SDL Image");
 
     // open font
     TTF_Font *font = TTF_OpenFont(font_path, font_size);
