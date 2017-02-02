@@ -94,30 +94,30 @@ void read_config() {
             // check if the line is a new line character
             if(*line != '\n') {
                 // split on : character
-                split = strtok(line, ":");
+                split = strtok(line, "=");
                 // check the config setting name to set the proper variable
                 if(strcmp(split, "font_size") == 0) {
-                    split = strtok(NULL, ":");
+                    split = strtok(NULL, "=");
                     font_size = atoi(split);
                 }
                 if(strcmp(split, "base_path") == 0) {
-                    split = strtok(NULL, ":");
+                    split = strtok(NULL, "=");
                     split = strtok(split, "\n");
                     base_path = malloc(sizeof(char) * 256);
                     strcpy(base_path, split);
                 }
                 if(strcmp(split, "font_name") == 0) {
-                    split = strtok(NULL, ":");
+                    split = strtok(NULL, "=");
                     split = strtok(split, "\n");
                     font_name = malloc(sizeof(char) * 256);
                     strcpy(font_name, split);
                 }
                 if(strcmp(split, "full_screen") == 0) {
-                    split = strtok(NULL, ":");
+                    split = strtok(NULL, " ");
                     full_screen = atoi(split);
                 }
                 if(strcmp(split, "sound") == 0) {
-                    split = strtok(NULL, ":");
+                    split = strtok(NULL, " ");
                     sound = atoi(split);
                 }
 
@@ -148,11 +148,11 @@ void read_config() {
         if(fp == NULL)
             exit_msg("Failed to open config.txt");
         // write default settings to file
-        fprintf(fp, "font_size:14\n");
-        fprintf(fp, "base_path:pics\\\n");
-        fprintf(fp, "font_name:FreeMonoBold.ttf\n");
-        fprintf(fp, "full_screen:1\n");
-        fprintf(fp, "sound:0\n");
+        fprintf(fp, "font_size=14\n");
+        fprintf(fp, "base_path=pics\\\n");
+        fprintf(fp, "font_name=FreeMonoBold.ttf\n");
+        fprintf(fp, "full_screen=1\n");
+        fprintf(fp, "sound=0\n");
         // set default settings for variables
         font_size = 14;
         base_path = "pics\\";
