@@ -113,11 +113,11 @@ void read_config() {
                     strcpy(font_name, split);
                 }
                 if(strcmp(split, "full_screen") == 0) {
-                    split = strtok(NULL, " ");
+                    split = strtok(NULL, "\n");
                     full_screen = atoi(split);
                 }
                 if(strcmp(split, "sound") == 0) {
-                    split = strtok(NULL, " ");
+                    split = strtok(NULL, "\n");
                     sound = atoi(split);
                 }
 
