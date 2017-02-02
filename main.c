@@ -53,6 +53,7 @@ char *img = NULL;
 char *base_path = NULL;
 char *folder_path = NULL;
 char *font_name = NULL;
+char *font_path = NULL;
 
 void exit_msg(char *msg) {
     printf(msg);
@@ -62,6 +63,7 @@ void exit_msg(char *msg) {
 void cleanup() {
     SDL_free(base_path);
     free(font_name);
+    free(font_path);
     free(folder_path);
     av_free(imageBuffer);
     av_free(pFrame);
@@ -191,6 +193,12 @@ int main(int argc, char* args[]) {
 
     // read or create config settings
     read_config();
+    // setup full font path
+    font_path = malloc(strlen(base_path) + strlen(font_name) + 1);
+    // get config location
+    font_path[0] = '\0';
+    strcat(font_path, base_path);
+    strcat(font_path, font_name);
     // get full base path with folder path
     base_path = strcat(base_path, folder_path);
 
@@ -303,7 +311,7 @@ int main(int argc, char* args[]) {
         exit_msg("Couldn't init SDL Image");
 
     // open font
-    TTF_Font *font = TTF_OpenFont(font_name, font_size);
+    TTF_Font *font = TTF_OpenFont(font_path, font_size);
     if(font == NULL)
         exit_msg("Failed to open font");
     // get text size
