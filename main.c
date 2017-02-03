@@ -20,6 +20,7 @@ SDL_Surface *screen = NULL;
 SDL_Surface *text = NULL;
 SDL_Texture *texture = NULL;
 SDL_Renderer *renderer = NULL;
+SDL_Texture *screen_texture = NULL;
 caca_dither_t *dither = NULL;
 int font_size = -1, font_width, font_height;
 uint16_t bg, fg;
@@ -59,6 +60,8 @@ void exit_msg(char *msg) {
 
 void cleanup() {
     SDL_free(base_path);
+    SDL_free(screen_texture);
+    SDL_free(screen);
     free(font_name);
     free(font_path);
     free(folder_path);
@@ -299,6 +302,9 @@ int main(int argc, char* args[]) {
     if(full_screen)
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
+    // create renderer
+    renderer = SDL_CreateRenderer(window, -1, 0);
+
     if(window == NULL)
         exit_msg("Couldn't init SDL Window");
 
@@ -312,8 +318,12 @@ int main(int argc, char* args[]) {
     // get text size
     TTF_SizeText(font, "a", &font_width, &font_height);
 
-    // get screen surface
-    screen = SDL_GetWindowSurface(window);
+    // create screen surface
+    screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0);
+    // create screen texture
+    screen_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    // setup libcaca
     cv = caca_create_canvas(screen->w / font_width, screen->h / font_height);
     caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
     caca_put_str(cv, 0, 0, "caca failed");
@@ -388,8 +398,13 @@ int main(int argc, char* args[]) {
                         pos.y += font_height;
                     }
 
-                    //Update the window
-                    SDL_UpdateWindowSurface(window);
+                    // update screen texture
+                    SDL_UpdateTexture(screen_texture, NULL, screen->pixels, screen->pitch);
+
+                    // update the window
+                    SDL_RenderClear(renderer);
+                    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+                    SDL_RenderPresent(renderer);
                 }
             }
             // free packet
