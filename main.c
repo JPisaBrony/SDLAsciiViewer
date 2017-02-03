@@ -40,7 +40,7 @@ uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
 int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
-int full_screen = -1, sound = -1, random = -1, num_pics = 0;
+int full_screen = -1, sound = -1, rnd = -1, num_pics = 0;
 DIR *dir;
 struct dirent *ent;
 char *filename = NULL;
@@ -174,8 +174,6 @@ void read_config() {
     // cleanup
     fclose(fp);
     free(line);
-    free(split);
-    free(config_name);
     free(config);
 }
 
@@ -216,8 +214,8 @@ int main(int argc, char* args[]) {
     }
 
     srand(time(NULL));
-    random = rand() % num_pics;
-    img = pictures[random];
+    rnd = rand() % num_pics;
+    img = pictures[rnd];
 
     if ((input_full_path = malloc(strlen(base_path) + strlen(img) + 1)) != NULL) {
         input_full_path[0] = '\0';
