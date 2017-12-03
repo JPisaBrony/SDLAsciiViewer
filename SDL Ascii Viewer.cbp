@@ -4,13 +4,13 @@
 	<Project>
 		<Option title="SDL Ascii Viewer" />
 		<Option pch_mode="2" />
-		<Option compiler="gnu_gcc_620" />
+		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/SDL Ascii Viewer" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="0" />
-				<Option compiler="gnu_gcc_620" />
+				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -19,7 +19,7 @@
 				<Option output="bin/Release/SDLCACA" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
-				<Option compiler="gnu_gcc_620" />
+				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
