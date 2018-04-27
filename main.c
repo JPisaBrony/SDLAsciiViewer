@@ -186,11 +186,6 @@ int main(int argc, char* args[]) {
     // get base working directory
     base_path = SDL_GetBasePath();
 
-    #ifdef _WIN32
-        // windows specific call to get the full file path instead of the short file path
-        GetLongPathName(base_path, base_path, 1024);
-    #endif
-
     // read or create config settings
     read_config();
     // setup full font path
@@ -324,9 +319,13 @@ int main(int argc, char* args[]) {
     screen_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // setup libcaca
-    cv = caca_create_canvas(screen->w / font_width, screen->h / font_height);
+    cv = caca_create_canvas(SCREEN_WIDTH / font_width, SCREEN_HEIGHT / font_height);
     caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
     caca_put_str(cv, 0, 0, "caca failed");
+
+    // set default color alpha
+    text_color.a = 0xff;
+    background_color.a = 0xff;
 
     // create dither
     dither = caca_create_dither(32, pCodecCtx->width, pCodecCtx->height, pCodecCtx->width * 4, 0x0000ff, 0x00ff00, 0xff0000, 0);
@@ -367,15 +366,15 @@ int main(int argc, char* args[]) {
                     // clear canvas
                     caca_clear_canvas(cv);
                     // dither the frame
-                    caca_dither_bitmap(cv, 0, 0, (screen->w / font_width) * zoom, (screen->h / font_height) * zoom, dither, pFrameRGBA->data[0]);
+                    caca_dither_bitmap(cv, 0, 0, (SCREEN_WIDTH / font_width) * zoom, (SCREEN_HEIGHT / font_height) * zoom, dither, pFrameRGBA->data[0]);
                     // get libcaca internal state
                     chars = caca_get_canvas_chars(cv);
                     attrs = caca_get_canvas_attrs(cv);
 
                     pos.x = 0;
                     pos.y = 0;
-                    for(i = 0; i < screen->h / font_height; i++) {
-                        for(j = 0; j < screen->w / font_width; j++) {
+                    for(i = 0; i < SCREEN_HEIGHT / font_height; i++) {
+                        for(j = 0; j < SCREEN_WIDTH / font_width; j++) {
                             ch[0] = *chars++;
                             ch[1] = '\0';
                             bg = caca_attr_to_rgb12_bg(*attrs);
@@ -383,11 +382,9 @@ int main(int argc, char* args[]) {
                             text_color.r = ((fg & 0xf00) >> 8) * 8;
                             text_color.g = ((fg & 0x0f0) >> 4) * 8;
                             text_color.b = (fg & 0x00f) * 8;
-                            text_color.a = 0xff;
                             background_color.r = ((bg & 0xf00) >> 8) * 8;
                             background_color.g = ((bg & 0x0f0) >> 4) * 8;
                             background_color.b = (bg & 0x00f) * 8;
-                            background_color.a = 0xff;
                             text = TTF_RenderText_Shaded(font, &ch, text_color, background_color);
                             SDL_BlitSurface(text, NULL, screen, &pos);
                             SDL_FreeSurface(text);
