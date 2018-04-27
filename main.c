@@ -8,6 +8,8 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <time.h>
+#include <SDL_gpu.h>
+#include <SDL_FontCache.h>
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 900
@@ -15,18 +17,12 @@
 caca_canvas_t *cv = NULL;
 SDL_Event event;
 SDL_Surface *caca_view = NULL;
-SDL_Window *window = NULL;
-SDL_Surface *screen = NULL;
-SDL_Surface *text = NULL;
-SDL_Texture *texture = NULL;
-SDL_Renderer *renderer = NULL;
-SDL_Texture *screen_texture = NULL;
 caca_dither_t *dither = NULL;
 int font_size = -1, font_width, font_height;
 uint16_t bg, fg;
 SDL_Color text_color;
 SDL_Color background_color;
-SDL_Rect pos;
+FC_Rect pos;
 char ch[2];
 uint32_t *chars, *attrs;
 float zoom = 1;
@@ -60,8 +56,6 @@ void exit_msg(char *msg) {
 
 void cleanup() {
     SDL_free(base_path);
-    SDL_free(screen_texture);
-    SDL_free(screen);
     free(font_name);
     free(font_path);
     free(folder_path);
@@ -74,7 +68,7 @@ void cleanup() {
     avformat_close_input(&pFormatCtx);
     caca_free_canvas(cv);
     caca_free_dither(dither);
-    SDL_Quit();
+    GPU_Quit();
 }
 
 void read_config() {
@@ -186,11 +180,6 @@ int main(int argc, char* args[]) {
     // get base working directory
     base_path = SDL_GetBasePath();
 
-    #ifdef _WIN32
-        // windows specific call to get the full file path instead of the short file path
-        GetLongPathName(base_path, base_path, 1024);
-    #endif
-
     // read or create config settings
     read_config();
     // setup full font path
@@ -292,41 +281,39 @@ int main(int argc, char* args[]) {
             NULL,
             NULL);
 
-    // setup SDL
-    if(SDL_Init(SDL_INIT_EVERYTHING) == -1)
-        exit_msg("Couldn't init SDL");
+    // set default window flags
+    GPU_WindowFlagEnum flags = GPU_DEFAULT_INIT_FLAGS;
 
-    // setup SDL window
-    window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     // set window as full screen
     if(full_screen)
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    // create renderer
-    renderer = SDL_CreateRenderer(window, -1, 0);
+    // setup SDL and SDP gpu
+    GPU_Target *gpu_target = GPU_Init(SCREEN_WIDTH, SCREEN_HEIGHT, flags);
 
-    if(window == NULL)
+    if(gpu_target == NULL)
         exit_msg("Couldn't init SDL Window");
 
-    if(TTF_Init() == -1)
-        exit_msg("Couldn't init SDL TTF");
+    // set window title
+    SDL_SetWindowTitle(SDL_GetWindowFromID(gpu_target->context->windowID), "SDL Ascii Viewer");
 
     // open font
-    TTF_Font *font = TTF_OpenFont(font_path, font_size);
-    if(font == NULL)
-        exit_msg("Failed to open font");
-    // get text size
-    TTF_SizeText(font, "a", &font_width, &font_height);
+    FC_Font *font = FC_CreateFont();
+    FC_LoadFont(font, font_path, font_size, FC_MakeColor(255, 255, 255, 255), TTF_STYLE_NORMAL);
 
-    // create screen surface
-    screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0);
-    // create screen texture
-    screen_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+    // get text size
+    font_height = FC_GetHeight(font, "a");
+    font_width = FC_GetWidth(font, "a");
 
     // setup libcaca
-    cv = caca_create_canvas(screen->w / font_width, screen->h / font_height);
+    cv = caca_create_canvas(SCREEN_WIDTH / font_width, SCREEN_HEIGHT / font_height);
     caca_set_color_ansi(cv, CACA_WHITE, CACA_BLACK);
     caca_put_str(cv, 0, 0, "caca failed");
+
+    // set default color alpha
+    text_color.a = 0xff;
+    background_color.a = 0xff;
 
     // create dither
     dither = caca_create_dither(32, pCodecCtx->width, pCodecCtx->height, pCodecCtx->width * 4, 0x0000ff, 0x00ff00, 0xff0000, 0);
@@ -361,21 +348,18 @@ int main(int argc, char* args[]) {
                         pFrame->linesize, 0, pCodecCtx->height,
                         pFrameRGBA->data, pFrameRGBA->linesize);
 
-                    //Fill background with black
-                    SDL_FillRect(screen, NULL, 0x000000);
-
                     // clear canvas
                     caca_clear_canvas(cv);
                     // dither the frame
-                    caca_dither_bitmap(cv, 0, 0, (screen->w / font_width) * zoom, (screen->h / font_height) * zoom, dither, pFrameRGBA->data[0]);
+                    caca_dither_bitmap(cv, 0, 0, (SCREEN_WIDTH / font_width) * zoom, (SCREEN_HEIGHT / font_height) * zoom, dither, pFrameRGBA->data[0]);
                     // get libcaca internal state
                     chars = caca_get_canvas_chars(cv);
                     attrs = caca_get_canvas_attrs(cv);
 
                     pos.x = 0;
                     pos.y = 0;
-                    for(i = 0; i < screen->h / font_height; i++) {
-                        for(j = 0; j < screen->w / font_width; j++) {
+                    for(i = 0; i < SCREEN_HEIGHT / font_height; i++) {
+                        for(j = 0; j < SCREEN_WIDTH / font_width; j++) {
                             ch[0] = *chars++;
                             ch[1] = '\0';
                             bg = caca_attr_to_rgb12_bg(*attrs);
@@ -383,14 +367,13 @@ int main(int argc, char* args[]) {
                             text_color.r = ((fg & 0xf00) >> 8) * 8;
                             text_color.g = ((fg & 0x0f0) >> 4) * 8;
                             text_color.b = (fg & 0x00f) * 8;
-                            text_color.a = 0xff;
                             background_color.r = ((bg & 0xf00) >> 8) * 8;
                             background_color.g = ((bg & 0x0f0) >> 4) * 8;
                             background_color.b = (bg & 0x00f) * 8;
-                            background_color.a = 0xff;
-                            text = TTF_RenderText_Shaded(font, &ch, text_color, background_color);
-                            SDL_BlitSurface(text, NULL, screen, &pos);
-                            SDL_FreeSurface(text);
+                            // render background of text
+                            GPU_RectangleFilled(gpu_target, pos.x, pos.y, pos.x + font_width, pos.y + font_height, background_color);
+                            // render text
+                            FC_DrawColor(font, gpu_target, pos.x, pos.y, text_color, &ch);
                             pos.x += font_width;
                             attrs++;
                         }
@@ -398,13 +381,9 @@ int main(int argc, char* args[]) {
                         pos.y += font_height;
                     }
 
-                    // update screen texture
-                    SDL_UpdateTexture(screen_texture, NULL, screen->pixels, screen->pitch);
-
-                    // update the window
-                    SDL_RenderClear(renderer);
-                    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-                    SDL_RenderPresent(renderer);
+                    // update the screen
+                    GPU_Flip(gpu_target);
+                    GPU_Clear(gpu_target);
                 }
             }
             // free packet
