@@ -41,7 +41,7 @@ uint8_t *imageBuffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 AVPacket packet;
 int videoStream = -1, frameFinished, numBytes, stream_index, start_time;
-int full_screen = -1, sound = -1, rnd = -1, num_pics = 0;
+int full_screen = -1, sound = -1, rnd = -1, num_pics = 0, monitor = -1;
 DIR *dir;
 struct dirent *ent;
 char *filename = NULL;
@@ -79,7 +79,7 @@ void cleanup() {
 
 void read_config() {
     char ch, *line = NULL, *split = NULL, *config_name = NULL, *config = NULL;
-    int i = 0, line_length = 255, line_end_flag = 0, num_lines = 0;
+    int i = 0, line_length = 255, line_end_flag = 0, num_lines = 0, mon = 0;
     FILE *fp = NULL;
 
     // setup config strings
@@ -133,6 +133,10 @@ void read_config() {
                     split = strtok(NULL, "\n");
                     sound = atoi(split);
                 }
+                if(strcmp(split, "monitor") == 0) {
+                    split = strtok(NULL, "\n");
+                    monitor = atoi(split);
+                }
 
                 i++;
             }
@@ -153,6 +157,9 @@ void read_config() {
 
         if(sound == -1)
             sound = 0;
+
+        if(monitor == -1)
+            monitor = 0;
     } else {
         // file doesn't exist so write default configuration
         // and use default values
@@ -166,12 +173,14 @@ void read_config() {
         fprintf(fp, "font_name=FreeMonoBold.ttf\n");
         fprintf(fp, "full_screen=1\n");
         fprintf(fp, "sound=0\n");
+        fprintf(fp, "monitor=0\n");
         // set default settings for variables
         font_size = 14;
         folder_path = "pics/";
         font_name = "FreeMonoBold.ttf";
         full_screen = 1;
         sound = 0;
+        monitor = 0;
     }
 
     // cleanup
@@ -292,7 +301,7 @@ int main(int argc, char* args[]) {
         exit_msg("Couldn't init SDL");
 
     // setup SDL window
-    window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("SDL Ascii Viewer", SDL_WINDOWPOS_CENTERED_DISPLAY(monitor), SDL_WINDOWPOS_CENTERED_DISPLAY(monitor), SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     // set window as full screen
     if(full_screen)
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);

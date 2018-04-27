@@ -3,3 +3,4 @@ folder_path=pics/
 font_name=FreeMonoBold.ttf
 full_screen=1
 sound=0
+monitor=0
