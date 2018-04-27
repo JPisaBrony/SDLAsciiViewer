@@ -78,8 +78,8 @@ void cleanup() {
 }
 
 void read_config() {
-    char ch, *line = NULL, *split = NULL, *config_name = NULL, *config = NULL;
-    int i = 0, line_length = 255, line_end_flag = 0, num_lines = 0, mon = 0;
+    char *line = NULL, *split = NULL, *config_name = NULL, *config = NULL;
+    int i = 0, line_length = 255;
     FILE *fp = NULL;
 
     // setup config strings
